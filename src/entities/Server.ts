@@ -46,7 +46,7 @@ export class Server extends BaseEntity {
         password: string,
         owner: User,
         name?: string,
-        description?: string,
+        description?: string
     ) {
         super();
         this.ipAddress = ipAddress;
@@ -60,10 +60,10 @@ export class Server extends BaseEntity {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     name?: string;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     description?: string;
 
     @Column()
@@ -76,7 +76,7 @@ export class Server extends BaseEntity {
     password!: string;
 
     @ManyToOne(() => User, (user) => user.servers)
-    owner?: User;
+    owner: User;
 
     @OneToMany(() => DataEntry, (dataEntry) => dataEntry.owner)
     dataEntries?: DataEntry[];
@@ -166,10 +166,10 @@ export class Server extends BaseEntity {
             id: this.id,
             name: this.name,
             description: this.description,
-            owner: this.owner,
+            owner: this.owner.dataAsGuest(),
         } as Server;
         return resultData;
-    }
+    };
 
     /**
      * Return this objects private data.
@@ -180,10 +180,10 @@ export class Server extends BaseEntity {
             id: this.id,
             name: this.name,
             description: this.description,
-            owner: this.owner,
+            owner: this.owner.dataAsGuest(),
             ipAddress: this.ipAddress,
-            port: this.port
+            port: this.port,
         } as Server;
         return resultData;
-    }
+    };
 }
