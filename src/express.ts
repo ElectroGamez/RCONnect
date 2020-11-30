@@ -21,6 +21,7 @@ export class RequestError extends Error {
      * @param {Record<string, unknown>} [payload] Extra informations to give to the enduser.
      * @param {number} [httpStatusCode] HTTP statuscodes, used for returning a statuscode to the enduser.
      * @param {number} [statusCode] Internal statuscode, used for custom error codes.
+     * @param {Record<string, unknown>} [adminData] Extra information to give to the logger. Not send to enduser.
      * @memberof RequestError
      */
     constructor(
