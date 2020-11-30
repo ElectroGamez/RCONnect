@@ -74,7 +74,7 @@ export class Server extends BaseEntity {
     owner?: User;
 
     @OneToMany(() => DataEntry, (dataEntry) => dataEntry.owner)
-    dataPoints?: DataEntry[];
+    dataEntries?: DataEntry[];
 
     /**
      * Gets player list from server
@@ -121,6 +121,7 @@ export class Server extends BaseEntity {
                         playerList.push(tempPlayer);
                     }
                 }
+                rcon.end();
                 return playerList;
             }
             console.error(
@@ -150,4 +151,34 @@ export class Server extends BaseEntity {
             return error;
         }
     };
+
+    /**
+     * Return this objects public data.
+     * @returns {Server} Returns the server object with limited data.
+     */
+    dataAsGuest = (): Server => {
+        const resultData = {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            owner: this.owner,
+        } as Server;
+        return resultData;
+    }
+
+    /**
+     * Return this objects private data.
+     * @returns {Server} Returns the server object with partially limited data.
+     */
+    dataAsOwner = (): Server => {
+        const resultData = {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            owner: this.owner,
+            ipAddress: this.ipAddress,
+            port: this.port
+        } as Server;
+        return resultData;
+    }
 }

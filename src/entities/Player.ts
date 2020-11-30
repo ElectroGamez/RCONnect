@@ -21,5 +21,5 @@ export class Player extends BaseEntity {
     uuid!: string;
 
     @OneToMany(() => DataEntry, (dataEntry) => dataEntry.owner)
-    dataPoints?: DataEntry[];
+    dataEntries?: DataEntry[];
 }
