@@ -27,18 +27,21 @@ export class RequestError extends Error {
         message: string,
         payload?: Record<string, unknown>,
         httpStatusCode?: number,
-        statusCode?: number
+        statusCode?: number,
+        adminData?: Record<string, unknown>
     ) {
         super(message);
 
         this.payload = payload;
         this.httpStatusCode = httpStatusCode;
         this.statusCode = statusCode;
+        this.adminData = adminData;
     }
 
     payload?: Record<string, unknown>;
     httpStatusCode?: number;
     statusCode?: number;
+    adminData?: Record<string, unknown>;
 }
 
 /**
