@@ -52,7 +52,7 @@ export class User extends BaseEntity {
         }
     };
 
-    dataAsOwner = (): User => {
+    dataAsGuest = (): User => {
         const resultData = {
             id: this.id,
             name: this.name,
