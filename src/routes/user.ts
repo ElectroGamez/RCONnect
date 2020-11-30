@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Server } from "../entities/Server";
 import { User } from "../entities/User";
 import { RequestError } from "../express";
 import { hashPassword } from "../helpers/bcrypt";
@@ -49,25 +50,15 @@ router.post("/", async (req, res, next) => {
                 await User.findOne(user.id, { select: ["email", "name"] })
             );
         } else {
-            throw new RequestError("This email address is already in use.", {}, 400, 7401);
+            throw new RequestError(
+                "This email address is already in use.",
+                {},
+                400,
+                7401
+            );
         }
     } catch (error) {
         next(error);
-    }
-});
-
-router.delete("/", checkToken, async (_req, res, next) => {
-    try {
-        // Get User account from JWT token.
-        const userId: string = res.locals.user;
-        const requestor = await User.findOne(userId);
-
-        // Remove account
-        await requestor?.remove();
-
-        res.json(requestor);
-    } catch (error) {
-        next();
     }
 });
 
@@ -88,6 +79,56 @@ router.post("/login", async (req, res, next) => {
                 403
             );
     } catch (error) {
+        next(error);
+    }
+});
+
+router.delete("/", checkToken, async (_req, res, next) => {
+    // Get User account from JWT token.
+    const userId: string = res.locals.userId;
+
+    try {
+        const requestor = await User.findOne(userId);
+
+        // Remove account
+        await requestor?.remove();
+        res.json(requestor?.dataAsGuest());
+    } catch (error) {
+        // Check if the error was an expected MySQL foreign key constraint error. Else handle error as normal.
+        if (error.errno == 1451) {
+            const servers = await Server.find({
+                where: {
+                    owner: {
+                        id: userId,
+                    },
+                },
+                select: ["id"],
+            }).catch((error) => {
+                next(
+                    new RequestError(
+                        "Error while loading bound servers",
+                        {
+                            description:
+                                "There was an unexpected error while handeling an expected error.",
+                        },
+                        500,
+                        undefined,
+                        {
+                            unexpectedError: error,
+                        }
+                    )
+                );
+            });
+
+            next(
+                new RequestError(
+                    "Your user account has active servers! Delete these servers first.",
+                    { servers },
+                    409
+                )
+            );
+        }
+
         next(error);
     }
 });
