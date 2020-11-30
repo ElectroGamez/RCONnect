@@ -5,6 +5,7 @@ import cors from "cors";
 
 import server from "./routes/server";
 import user from "./routes/user";
+import player from "./routes/player";
 
 /**
  * Express Error handler, used to give more detailed errors to the end user.
@@ -70,6 +71,7 @@ export const startServer = (port?: number): void => {
 
     app.use("/server", server);
     app.use("/user", user);
+    app.use("/player", player);
 
     port = port || 3000;
 
