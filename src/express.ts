@@ -1,6 +1,7 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 
 import express from "express";
+import cors from "cors";
 
 import server from "./routes/server";
 import user from "./routes/user";
@@ -62,13 +63,16 @@ export const errorHandler: ErrorRequestHandler = (
 
 export const startServer = (port?: number): void => {
     const app = express();
+
+    app.use(cors());
+
     app.use(express.json());
-    
+
     app.use("/server", server);
     app.use("/user", user);
-        
+
     port = port || 3000;
-    
+
     app.use(errorHandler);
     app.listen(port, async () => {
         console.log("Running backend on " + port);
