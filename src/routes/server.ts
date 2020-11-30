@@ -5,11 +5,10 @@
 import { Router } from "express";
 import { Like } from "typeorm";
 import { Server } from "../entities/Server";
+import { User } from "../entities/User";
 import { checkToken } from "../middlewares/jwt";
 
 const router = Router();
-
-router.use(checkToken);
 
 router.get("/", async (_req, res, next) => {
     try {
@@ -17,17 +16,6 @@ router.get("/", async (_req, res, next) => {
         const guestView = servers.map((server) => server.dataAsGuest());
 
         res.json(guestView);
-    } catch (error) {
-        next(error);
-    }
-});
-
-router.get("/id/:id", async (req, res, next) => {
-    try {
-        const server = (
-            await Server.findOneOrFail(req.params.id)
-        ).dataAsOwner();
-        res.json(server);
     } catch (error) {
         next(error);
     }
@@ -47,16 +35,28 @@ router.get("/search/:name", async (req, res, next) => {
     }
 });
 
-router.post("/", async (req, res, next) => {
+router.get("/id/:id", checkToken, async (req, res, next) => {
+    try {
+        const server = (
+            await Server.findOneOrFail(req.params.id)
+        ).dataAsOwner();
+        res.json(server);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post("/", checkToken, async (req, res, next) => {
     try {
         const server = await new Server(
             req.body.ipAddress,
             req.body.port,
             req.body.password,
+            (await User.findOneOrFail(res.locals.userId)).dataAsOwner(),
             req.body.name,
             req.body.description
         ).save();
-        res.json(server);
+        res.json(server.dataAsOwner());
     } catch (error) {
         next(error);
     }

@@ -11,7 +11,7 @@ import { Server } from "./Server";
 
 @Entity()
 export class User extends BaseEntity {
-    constructor (name: string, email: string, password: string) {
+    constructor(name: string, email: string, password: string) {
         super();
 
         this.name = name;
@@ -42,13 +42,21 @@ export class User extends BaseEntity {
      */
     authorize = (): Token => {
         return signToken(this);
-    }
+    };
 
     checkPassword = async (password: string): Promise<boolean> => {
         try {
-            return await checkPassword(password, this.password);           
+            return await checkPassword(password, this.password);
         } catch (error) {
             return false;
         }
-    }
+    };
+
+    dataAsOwner = (): User => {
+        const resultData = {
+            id: this.id,
+            name: this.name,
+        } as User;
+        return resultData;
+    };
 }

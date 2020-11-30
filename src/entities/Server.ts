@@ -32,15 +32,19 @@ interface RconnectionError {
 export class Server extends BaseEntity {
     /**
      * Creates an instance of Server.
-     * @param {string} ipAddress
-     * @param {number} port
-     * @param {string} password
+     * @param {string} ipAddress Server IP address
+     * @param {number} port Server RCON port
+     * @param {string} password Server RCON Password
+     * @param {User} owner Owner of server
+     * @param {string} name Server Name
+     * @param {string} description Server Description
      * @memberof Server
      */
     constructor(
         ipAddress: string | "localhost",
         port: number | 25575,
         password: string,
+        owner: User,
         name?: string,
         description?: string,
     ) {
@@ -48,6 +52,7 @@ export class Server extends BaseEntity {
         this.ipAddress = ipAddress;
         this.port = port;
         this.password = password;
+        this.owner = owner;
         this.name = name;
         this.description = description;
     }
