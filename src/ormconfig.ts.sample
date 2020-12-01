@@ -12,7 +12,7 @@ const connectionConfig: ConnectionOptions = {
     synchronize: true,
     logging: false,
     entities:
-        process.env.NODE_ENV == "production"
+        process.env.SCRIPT_FILES == "js"
             ? ["dist/entities/*.js"]
             : ["src/entities/**/*.ts"],
 };
