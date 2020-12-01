@@ -12,7 +12,7 @@ router.get("/", checkToken, async (_req, res, next) => {
         // Get User account from JWT token.
         const userId: string = res.locals.user;
         const requestor = await User.findOne(userId, {
-            select: ["name", "email"],
+            select: ["id", "name", "email"],
         });
 
         res.json(requestor);
