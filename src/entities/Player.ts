@@ -5,7 +5,8 @@ import {
     PrimaryGeneratedColumn,
     OneToMany,
 } from "typeorm";
-import { DataEntry } from "./DataEntry";
+import { getUsername } from "../helpers/mojangUUIDs";
+import { PlayerDataEntry } from "./PlayerDataEntry";
 
 @Entity()
 export class Player extends BaseEntity {
@@ -20,6 +21,13 @@ export class Player extends BaseEntity {
     @Column()
     uuid!: string;
 
-    @OneToMany(() => DataEntry, (dataEntry) => dataEntry.owner)
-    dataEntries?: DataEntry[];
+    @OneToMany(
+        () => PlayerDataEntry,
+        (playerDataEntry) => playerDataEntry.owner
+    )
+    dataEntries?: PlayerDataEntry[];
+
+    name() {
+        return getUsername(this.uuid);
+    }
 }

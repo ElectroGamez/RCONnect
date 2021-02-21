@@ -1,20 +1,27 @@
 import { ConnectionOptions } from "typeorm";
+import { parse } from "pg-connection-string";
+
 import { config } from "dotenv";
 config();
 
-const connectionConfig: ConnectionOptions = {
+const dbOptions = parse(
+    process.env.DATABASE_URL ?? process.env.DEV_DB_URL ?? ""
+);
+
+const options: ConnectionOptions = {
+    host: dbOptions.host ?? "localhost",
     type: "mysql",
-    host: "192.168.22.27",
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306,
-    username: "rconnect",
-    password: "W9BlF4hpWNv2kh8u5l10!v*7$a&!rr",
-    database: "rconnect",
-    synchronize: true,
+    port: parseInt(dbOptions.port ?? "3307"),
+    username: dbOptions.user,
+    password: dbOptions.password,
+    database: dbOptions.database ?? "default",
     logging: false,
-    entities:
-        process.env.NODE_ENV == "production"
-            ? ["dist/entities/*.js"]
-            : ["src/entities/**/*.ts"],
+    entities: [
+        `${process.env.NODE_ENV == "production" ? "dist" : "src"}/entities/*${
+            process.env.NODE_ENV == "production" ? ".js" : ".ts"
+        }`,
+    ],
+    synchronize: true,
 };
 
-export default connectionConfig;
+export default options;

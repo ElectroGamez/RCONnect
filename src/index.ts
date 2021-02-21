@@ -11,4 +11,7 @@ import { startServer } from "./express";
     console.log("Database connection active");
 
     startServer();
+
+    // const rconnectManager = new RconnectManager();
+    // rconnectManager.startListener();
 })();

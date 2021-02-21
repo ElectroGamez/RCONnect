@@ -7,11 +7,11 @@ import {
     ManyToOne,
     OneToMany,
 } from "typeorm";
-import { DataEntry } from "./DataEntry";
 import { User } from "./User";
 
 import { Player } from "./Player";
 import { getUUID } from "../helpers/mojangUUIDs";
+import { ServerDataEntry } from "./ServerDataEntry";
 
 interface RconnectionError {
     errno: number;
@@ -78,8 +78,11 @@ export class Server extends BaseEntity {
     @ManyToOne(() => User, (user) => user.servers)
     owner: User;
 
-    @OneToMany(() => DataEntry, (dataEntry) => dataEntry.owner)
-    dataEntries?: DataEntry[];
+    @OneToMany(
+        () => ServerDataEntry,
+        (serverDataEntry) => serverDataEntry.server
+    )
+    dataEntries?: ServerDataEntry[];
 
     /**
      * Gets player list from server
@@ -126,7 +129,6 @@ export class Server extends BaseEntity {
                         playerList.push(tempPlayer);
                     }
                 }
-                rcon.end();
                 return playerList;
             }
             console.error(
@@ -139,22 +141,43 @@ export class Server extends BaseEntity {
         }
     };
 
+    async readStatistic(
+        playername: string,
+        statTitle: string,
+        rcon: Rcon
+    ): Promise<number> {
+        try {
+            const response = await rcon.send(
+                `scoreboard players get ${playername} ${statTitle}`
+            );
+
+            const checksum = response.split(" ")[0];
+            if (checksum == playername) {
+                return parseInt(response.split(" ")[2]);
+            }
+
+            return 0; // Played had no data for item, returning 0;
+        } catch (error) {
+            console.error(error);
+            return 0;
+        }
+    }
+
     /**
      * Creates a Rcon rconnection to the server.
-     * @return {*}  {(Promise<Rcon | RconnectionError>)} Returns the Rcon object or an error.
+     *
+     * @memberof Server
+     * @return {*} {(Promise<Rcon>)} Returns the Rcon object.
+     * @throws Connection Error
      */
-    private connect = async (): Promise<Rcon | RconnectionError> => {
-        try {
-            const rcon = await Rcon.connect({
-                host: this.ipAddress,
-                port: this.port,
-                password: this.password,
-            });
+    connect = async (): Promise<Rcon | RconnectionError> => {
+        const rcon = await Rcon.connect({
+            host: this.ipAddress,
+            port: this.port,
+            password: this.password,
+        });
 
-            return rcon;
-        } catch (error) {
-            return error;
-        }
+        return rcon;
     };
 
     /**

@@ -3,6 +3,7 @@
 */
 
 import { Router } from "express";
+import { PlayerDataEntry } from "../entities/PlayerDataEntry";
 import { Server } from "../entities/Server";
 import { User } from "../entities/User";
 import { RequestError } from "../express";
@@ -111,6 +112,39 @@ router.delete("/:id", async (req, res, next) => {
         const server = await Server.findOneOrFail(req.params.id);
         await server?.remove();
         res.json(server);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.get("/id/:id/players", async (req, res, next) => {
+    try {
+        const server = await Server.findOneOrFail(req.params.id);
+        const players = await server.getPlayers();
+
+        res.json(players);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.get("/id/:id/statistics/:playerId", async (req, res, next) => {
+    try {
+        const dataEntry = await PlayerDataEntry.createQueryBuilder()
+            .leftJoin("PlayerDataEntry.owner", "Owner")
+            .leftJoin("PlayerDataEntry.server", "Server")
+            .where("Owner.id = :playerId", { playerId: req.params.playerId })
+            .andWhere("Server.id = :id", { id: req.params.id })
+            .leftJoinAndSelect("PlayerDataEntry.dataPoints", "DataPoints")
+            .select([
+                "PlayerDataEntry.id",
+                "PlayerDataEntry.time",
+                "Owner.id",
+                "Server.id",
+                "DataPoints",
+            ])
+            .getOne();
+        res.json(dataEntry);
     } catch (error) {
         next(error);
     }
