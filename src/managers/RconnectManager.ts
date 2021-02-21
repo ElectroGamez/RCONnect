@@ -42,14 +42,13 @@ class RconnectManager {
                 if (!(rcon instanceof Rcon))
                     throw new Error("Connecting to server failed!");
 
-                // Create dataentry for number of connected players
+                // Create ServerDataEntry and ServerDataPoint number of connected players
                 const serverEntry = await new ServerDataEntry(server).save();
-
-                new ServerDataPoint(
+                await new ServerDataPoint(
                     "server_connectedPlayers",
                     players.length,
                     serverEntry
-                );
+                ).save();
 
                 // Debug Message
                 rcon.send("say Rcon connected!");
