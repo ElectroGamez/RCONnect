@@ -36,4 +36,25 @@ router.get("/search/:username", async (req, res, next) => {
     }
 });
 
+router.get("/id/:id/username", async (req, res, next) => {
+    try {
+        if (!req.params.id)
+            throw new RequestError("No userId provided", {}, 400);
+        const player = await Player.findOneOrFail(req.params.id);
+
+        const username = await player.name();
+
+        res.json({ username });
+    } catch (error) {
+        next(error);
+    }
+});
+
+interface IUsernameProp {
+    linkedEntry: {
+        owner: {
+            username?: string;
+        };
+    };
+}
 export default router;
