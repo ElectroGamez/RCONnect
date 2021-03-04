@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Player } from "../entities/Player";
+import { PlayerDataPoint } from "../entities/PlayerDataPoint";
 import { RequestError } from "../express";
 import { getUUID } from "../helpers/mojangUUIDs";
 
@@ -57,4 +58,33 @@ interface IUsernameProp {
         };
     };
 }
+
+router.get("/top/:length", async (req, res, next) => {
+    try {
+        const length = parseInt(req.params.length);
+
+        const dataPoints: PlayerDataPoint[] &
+            IUsernameProp[] = await PlayerDataPoint.find({
+                where: {
+                    title: "ts_PlayedMinutes",
+                },
+                order: {
+                    data: "DESC",
+                },
+                relations: ["linkedEntry", "linkedEntry.owner"],
+                take: length,
+                select: ["data", "id", "linkedEntry"],
+            });
+
+        for (const datapoint of dataPoints) {
+            datapoint.linkedEntry.owner.username =
+                (await datapoint.linkedEntry.owner.name()) ?? "";
+        }
+
+        res.json(dataPoints);
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;
