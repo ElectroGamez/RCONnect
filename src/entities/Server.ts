@@ -12,6 +12,11 @@ import { User } from "./User";
 import { Player } from "./Player";
 import { getUUID } from "../helpers/mojangUUIDs";
 import { ServerDataEntry } from "./ServerDataEntry";
+import Statistic from "../interfaces/Statistic";
+import statisticsFile from "../items";
+import { ServerDataPoint } from "./ServerDataPoint";
+import { PlayerDataEntry } from "./PlayerDataEntry";
+import { PlayerDataPoint } from "./PlayerDataPoint";
 
 interface RconnectionError {
     errno: number;
@@ -90,58 +95,142 @@ export class Server extends BaseEntity {
      * @memberof Server
      */
     getPlayers = async (): Promise<Player[]> => {
-        try {
-            const rcon = await this.connect();
-            if (rcon instanceof Rcon) {
-                const rawList = await rcon.send("list");
-                await rcon.end();
+        const rcon = await this.connect();
+        if (rcon instanceof Rcon) {
+            const rawList = await rcon.send("list");
+            await rcon.end();
 
-                const lines = rawList.split(":"); // Remove title
+            const lines = rawList.split(":"); // Remove title
 
-                const playerListRaw = lines[1].replaceAll(" ", "").split(","); // Generate clean player list
+            const playerListRaw = lines[1].replaceAll(" ", "").split(","); // Generate clean player list
 
-                const playerList: Player[] = [];
+            const playerList: Player[] = [];
 
-                // Check each playername
+            // Check each playername
 
-                for (let i = 0; i < playerListRaw.length; i++) {
-                    if (playerListRaw[i].length < 2) return [];
-                    const uuid = await getUUID(playerListRaw[i]);
+            for (let i = 0; i < playerListRaw.length; i++) {
+                if (playerListRaw[i].length < 2) return [];
+                const uuid = await getUUID(playerListRaw[i]);
 
-                    // When the UUId function fails, throw a new error.
-                    if (!uuid)
-                        throw new Error(
-                            "Could not get UUID for player " + playerListRaw[i]
-                        );
+                // When the UUId function fails, throw a new error.
+                if (!uuid)
+                    throw new Error(
+                        "Could not get UUID for player " + playerListRaw[i]
+                    );
 
-                    // Check if player already exists.
-                    const tempPlayer = await Player.findOne({
-                        where: {
-                            uuid: uuid,
-                        },
-                    });
+                // Check if player already exists.
+                const tempPlayer = await Player.findOne({
+                    where: {
+                        uuid: uuid,
+                    },
+                });
 
-                    // If not, create a new player entity otherwise we add the found player to the return list.
-                    if (!tempPlayer) {
-                        const newPlayer = await new Player(uuid).save();
-                        playerList.push(newPlayer);
-                    } else {
-                        playerList.push(tempPlayer);
-                    }
+                // If not, create a new player entity otherwise we add the found player to the return list.
+                if (!tempPlayer) {
+                    const newPlayer = await new Player(uuid).save();
+                    playerList.push(newPlayer);
+                } else {
+                    playerList.push(tempPlayer);
                 }
-                return playerList;
             }
-            console.error(
-                "Could not create Rcon connection for server " + this.id
-            );
-            return [];
-        } catch (error) {
-            console.error(error);
-            return [];
+            return playerList;
         }
+        console.error("Could not create Rcon connection for server " + this.id);
+        return [];
     };
 
-    async readStatistic(
+    /**
+     *
+     * Read and save all statisics on connected players.
+     * @return {*}  {Promise<void>}
+     * @memberof Server
+     */
+    async readStatistics(
+        playerCycle?: (player: Player) => void
+    ): Promise<void> {
+        const statistics: Statistic[] = statisticsFile;
+
+        const players = await this.getPlayers();
+        const rcon = await this.connect();
+
+        if (!(rcon instanceof Rcon))
+            throw new Error("Connecting to server failed!");
+
+        // Create ServerDataEntry and ServerDataPoint number of connected players
+        const serverEntry = await new ServerDataEntry(this).save();
+        await new ServerDataPoint(
+            "server_connectedPlayers",
+            players.length,
+            serverEntry
+        ).save();
+
+        // Debug Message
+        rcon.send("say Rcon connected!");
+
+        for (const player of players) {
+            if (playerCycle) playerCycle(player);
+
+            const playername = await player.name();
+            if (typeof playername == "string") {
+                const dataEntry = await new PlayerDataEntry(
+                    player,
+                    this
+                ).save();
+
+                let dataPointsLength = 0;
+
+                for (const statistic of statistics) {
+                    await rcon.send(
+                        `say Reading ${statistic.title} for player ${playername}`
+                    );
+                    const result = await this.readStatistic(
+                        playername,
+                        statistic.title,
+                        rcon
+                    );
+
+                    if (result != 0) {
+                        // Check if the latest datapoint was the same as the point before.
+                        const latestData = await PlayerDataPoint.createQueryBuilder()
+                            .leftJoin(
+                                "PlayerDataPoint.linkedEntry",
+                                "PlayerDataEntry"
+                            )
+                            .select([
+                                "PlayerDataEntry.time",
+                                "PlayerDataPoint.title",
+                                "PlayerDataPoint.data",
+                                "PlayerDataPoint.linkedEntry",
+                            ])
+                            .where("PlayerDataPoint.title = :title", {
+                                title: statistic.title,
+                            })
+                            .orderBy("PlayerDataEntry.time", "DESC")
+                            .getOne();
+
+                        if (latestData?.data != result) {
+                            const dataPoint = new PlayerDataPoint(
+                                statistic.title,
+                                result,
+                                dataEntry
+                            );
+                            await dataPoint.save();
+                            dataPointsLength++;
+                        }
+                    }
+                }
+                if (dataPointsLength == 0) {
+                    await (await dataEntry.remove()).save();
+                }
+            }
+        }
+
+        // Debug Message
+        await rcon.send("say Rcon disconnected!");
+        await rcon.end();
+    }
+
+    private async readStatistic(
         playername: string,
         statTitle: string,
         rcon: Rcon
@@ -170,7 +259,7 @@ export class Server extends BaseEntity {
      * @return {*} {(Promise<Rcon>)} Returns the Rcon object.
      * @throws Connection Error
      */
-    connect = async (): Promise<Rcon | RconnectionError> => {
+    private async connect(): Promise<Rcon | RconnectionError> {
         const rcon = await Rcon.connect({
             host: this.ipAddress,
             port: this.port,
@@ -178,7 +267,7 @@ export class Server extends BaseEntity {
         });
 
         return rcon;
-    };
+    }
 
     /**
      * Return this objects public data.
