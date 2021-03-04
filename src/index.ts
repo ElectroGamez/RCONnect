@@ -3,7 +3,7 @@ import "reflect-metadata";
 
 import typeormConfig from "./ormconfig";
 import { startServer } from "./express";
-// import RconnectManager from "./managers/RconnectManager";
+import RconnectManager from "./managers/RconnectManager";
 
 (async () => {
     // Starting DB connection
@@ -12,6 +12,6 @@ import { startServer } from "./express";
 
     startServer();
 
-    // const rconnectManager = new RconnectManager();
-    // rconnectManager.startListener();
+    const rconnectManager = new RconnectManager();
+    rconnectManager.startListener();
 })();
