@@ -120,7 +120,9 @@ router.delete("/:id", async (req, res, next) => {
 router.get("/id/:id/players", async (req, res, next) => {
     try {
         const server = await Server.findOneOrFail(req.params.id);
-        const players = await server.getPlayers();
+        const players = await server.getPlayers().catch(() => {
+            throw new Error("Failed to connect to server.");
+        });
 
         res.json(players);
     } catch (error) {
@@ -143,6 +145,7 @@ router.get("/id/:id/statistics/:playerId", async (req, res, next) => {
                 "Server.id",
                 "DataPoints",
             ])
+            .orderBy("PlayerDataEntry.time", "DESC")
             .getOne();
         res.json(dataEntry);
     } catch (error) {
